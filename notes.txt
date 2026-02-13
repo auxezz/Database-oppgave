@@ -1,0 +1,4 @@
+metadata = data om data
+
+Spørringer = hente ut data fra en database
+
