@@ -1,0 +1,6 @@
+google-genai
+flask
+flask-cors
+mysql-connector-python   # MySQL database connector
+flask-bcrypt             # Password hashing (wraps bcrypt for Flask)
+flask-login              # Session-based authentication management

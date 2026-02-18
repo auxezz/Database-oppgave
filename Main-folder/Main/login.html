@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Neuro AI - Login</title>
+  <link rel="stylesheet" href="/Main/styles.css">
+  <link rel="stylesheet" href="/Background/tiles.css">
+</head>
+<body>
+
+  <div class="page-container" style="max-width: 500px;">
+    <h1 class="page-title" id="formTitle">Login</h1>
+    <p class="page-subtitle" id="formSubtitle">Sign in to continue chatting</p>
+
+    <!-- Error / success message area -->
+    <p id="formMessage" style="color: #ff99aa; display: none; margin-bottom: 10px;"></p>
+
+    <div class="input-group" style="margin-bottom: 10px;">
+      <input type="text" id="usernameInput" class="input-field" placeholder="Username" autocomplete="off">
+    </div>
+
+    <div class="input-group" style="margin-top: 10px;">
+      <input type="password" id="passwordInput" class="input-field" placeholder="Password" autocomplete="off">
+    </div>
+
+    <button id="submitBtn" class="btn-primary">Login</button>
+
+    <p style="margin-top: 20px; color: #9fb7d6; font-size: 0.9rem;">
+      <span id="toggleText">Don't have an account?</span>
+      <a href="#" id="toggleLink" style="color: var(--pink); text-decoration: underline; cursor: pointer;">Register</a>
+    </p>
+  </div>
+
+  <div id="tiles-root">
+    <div id="background"></div>
+  </div>
+
+  <script src="/Background/tiles.js"></script>
+  <script>
+    const usernameInput = document.getElementById('usernameInput');
+    const passwordInput = document.getElementById('passwordInput');
+    const submitBtn = document.getElementById('submitBtn');
+    const formTitle = document.getElementById('formTitle');
+    const formSubtitle = document.getElementById('formSubtitle');
+    const formMessage = document.getElementById('formMessage');
+    const toggleText = document.getElementById('toggleText');
+    const toggleLink = document.getElementById('toggleLink');
+
+    const BASE_URL = "http://127.0.0.1:5000";
+
+    // Track whether we're in "login" or "register" mode
+    let isLoginMode = true;
+
+    // Toggle between login and register
+    toggleLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      isLoginMode = !isLoginMode;
+
+      if (isLoginMode) {
+        formTitle.textContent = "Login";
+        formSubtitle.textContent = "Sign in to continue chatting";
+        submitBtn.textContent = "Login";
+        toggleText.textContent = "Don't have an account?";
+        toggleLink.textContent = "Register";
+      } else {
+        formTitle.textContent = "Register";
+        formSubtitle.textContent = "Create a new account";
+        submitBtn.textContent = "Register";
+        toggleText.textContent = "Already have an account?";
+        toggleLink.textContent = "Login";
+      }
+
+      // Clear any error messages when switching modes
+      formMessage.style.display = "none";
+    });
+
+    // Show an error or success message below the title
+    function showMessage(text, isError = true) {
+      formMessage.textContent = text;
+      formMessage.style.color = isError ? "#ff99aa" : "#8fffd4";
+      formMessage.style.display = "block";
+    }
+
+    // Submit the form (login or register)
+    async function handleSubmit() {
+      const username = usernameInput.value.trim();
+      const password = passwordInput.value;
+
+      if (!username || !password) {
+        showMessage("Please enter both username and password.");
+        return;
+      }
+
+      // Pick the right endpoint based on the current mode
+      const endpoint = isLoginMode ? "/login" : "/register";
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = isLoginMode ? "Logging in..." : "Registering...";
+
+      try {
+        const res = await fetch(`${BASE_URL}${endpoint}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          // credentials: "include" tells the browser to send and accept cookies
+          // with this request. Without it, the session cookie from Flask would be
+          // ignored and the user wouldn't stay logged in.
+          credentials: "include",
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          // Success - redirect to chat page
+          showMessage(isLoginMode ? "Login successful!" : "Account created!", false);
+          setTimeout(() => {
+            window.location.href = '/Main/Neuro.html';
+          }, 500);
+        } else {
+          // Show the error message from the server
+          showMessage(data.error || "Something went wrong.");
+        }
+      } catch (err) {
+        showMessage("Cannot connect to server. Is it running?");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = isLoginMode ? "Login" : "Register";
+      }
+    }
+
+    submitBtn.addEventListener('click', handleSubmit);
+
+    // Allow pressing Enter in either input field to submit
+    usernameInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleSubmit();
+    });
+    passwordInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleSubmit();
+    });
+
+    // Focus username input on load
+    window.onload = () => usernameInput.focus();
+
+    // If the user is already logged in, skip straight to the chat page
+    (async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/auth/status`, { credentials: "include" });
+        const data = await res.json();
+        if (data.authenticated) {
+          window.location.href = '/Main/Neuro.html';
+        }
+      } catch {
+        // Server not running - stay on login page
+      }
+    })();
+  </script>
+</body>
+</html>
